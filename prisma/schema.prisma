@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id         String     @id @default(cuid())
+  email      String     @unique
+  password   String
+  name       String
+  createdAt  DateTime   @default(now())
+  businesses Business[]
+}
+
+model Business {
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  name          String
+  description   String?
+  logo          String?
+  whatsapp      String
+  primaryColor  String         @default("#22C55E")
+  currency      String         @default("COP")
+  active        Boolean        @default(true)
+  plan          Plan           @default(LITE)
+  domain        String?
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  products      Product[]
+  categories    Category[]
+  appointments  Appointment[]
+  sales         Sale[]
+  conversations Conversation[]
+  aiContext     AIContext?
+  createdAt     DateTime       @default(now())
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  image       String?
+  stock       Int       @default(0)
+  available   Boolean   @default(true)
+  featured    Boolean   @default(false)
+  categoryId  String?
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id])
+  category    Category? @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model Category {
+  id         String    @id @default(cuid())
+  name       String
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id])
+  products   Product[]
+}
+
+model Appointment {
+  id          String            @id @default(cuid())
+  clientName  String
+  clientPhone String
+  date        DateTime
+  service     String
+  status      AppointmentStatus @default(PENDING)
+  notes       String?
+  businessId  String
+  business    Business          @relation(fields: [businessId], references: [id])
+  createdAt   DateTime          @default(now())
+}
+
+model Sale {
+  id          String     @id @default(cuid())
+  clientName  String
+  clientPhone String
+  total       Float
+  status      SaleStatus @default(PENDING)
+  receiptUrl  String?
+  items       Json
+  businessId  String
+  business    Business   @relation(fields: [businessId], references: [id])
+  createdAt   DateTime   @default(now())
+}
+
+model Conversation {
+  id          String             @id @default(cuid())
+  clientPhone String
+  messages    Json               @default("[]")
+  assignedTo  String?
+  status      ConversationStatus @default(ACTIVE)
+  businessId  String
+  business    Business           @relation(fields: [businessId], references: [id])
+  updatedAt   DateTime           @updatedAt
+  createdAt   DateTime           @default(now())
+}
+
+model AIContext {
+  id           String   @id @default(cuid())
+  businessId   String   @unique
+  business     Business @relation(fields: [businessId], references: [id])
+  systemPrompt String   @db.Text
+  tone         String   @default("amigable y profesional")
+  faqs         Json     @default("[]")
+  updatedAt    DateTime @updatedAt
+}
+
+enum Plan {
+  LITE
+  PRO
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum SaleStatus {
+  PENDING
+  PAID
+  DELIVERED
+  CANCELLED
+}
+
+enum ConversationStatus {
+  ACTIVE
+  RESOLVED
+  ESCALATED
+}
